@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="index,follow">
+<meta name="description" content="Gather hesabınızı ve ilişkili kişisel verilerinizi silme talebinde bulunun.">
+<title>Hesap Silme Talebi | Gather</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#24223b;background:#f6f5fb;font-synthesis:none}*{box-sizing:border-box}body{min-height:100vh;margin:0;display:grid;place-items:center;padding:24px}main{width:min(100%,480px);background:white;border:1px solid #e7e3f3;border-radius:22px;padding:28px;box-shadow:0 16px 42px #2920470d}h1{font-size:1.55rem;margin:0 0 10px}h2{font-size:1.05rem;margin:18px 0 8px}p,li{font-size:.94rem;line-height:1.65;color:#53506b}.brand{color:#7051ce;font-weight:800;letter-spacing:.06em;margin-bottom:16px}label{display:block;font-weight:600;font-size:.88rem;margin:17px 0 7px}input[type=email],input[type=password]{display:block;width:100%;padding:12px 13px;border:1px solid #cfc9de;border-radius:10px;font:inherit}input:focus{outline:2px solid #9670f4;outline-offset:1px}button{cursor:pointer;background:#7254dc;color:white;border:0;border-radius:10px;padding:13px 17px;font:inherit;font-weight:650;width:100%;margin-top:18px}button:disabled{opacity:.6;cursor:wait}.secondary{background:#f2eefb;color:#433465}.danger{background:#b23048}.choice{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:.92rem;line-height:1.5}.choice input{margin-top:3px}.box{background:#f6f3fc;border-radius:12px;padding:13px 15px;margin-top:18px}.error{color:#a3203e;min-height:1.4em;font-size:.88rem}.success{color:#1e6f49}.small{font-size:.8rem;color:#77718c}.hidden{display:none!important}footer{margin-top:20px;border-top:1px solid #eee9f5;padding-top:12px}.user{font-size:.88rem;word-break:break-word}
+</style>
+</head>
+<body>
+<main>
+<div class="brand">GATHER</div>
+<h1>Hesabımı silmek istiyorum</h1>
+<p>Gather hesabınızın ve hesabınızla ilişkili kişisel verilerinizin silinmesini bu sayfadan talep edebilirsiniz. Uygulamayı yeniden yüklemeniz gerekmez.</p>
+<div class="box"><strong>Silme talebi hakkında</strong><p>Talebiniz alındığında hesabınız hemen silinmez; yetkili tarafından işlenir. Ortak harcama ve ödeme kayıtları diğer kullanıcıların hesaplarını etkileyebileceğinden, gerekli kayıtların saklanma gerekçesi ve süresi ayrıca değerlendirilir.</p></div>
+<section id="loginSection">
+<h2>Hesabınızı doğrulayın</h2>
+<p>Hesabınızın size ait olduğunu doğrulamak için Gather'a giriş yaptığınız e-posta adresi ve şifreyi kullanın.</p>
+<form id="loginForm">
+<label for="email">E-posta</label><input id="email" type="email" autocomplete="username" required>
+<label for="password">Şifre</label><input id="password" type="password" autocomplete="current-password" required>
+<button id="loginButton" type="submit">Giriş yap</button>
+</form>
+</section>
+<section id="requestSection" class="hidden">
+<h2>Silme talebi</h2>
+<p id="userLabel" class="user"></p>
+<p>Talebiniz hesabınızın ve ilişkili kişisel verilerinizin silinmesini kapsar. Uygulanabilir saklama yükümlülükleri ve başkalarının finansal kayıtlarının bütünlüğü dikkate alınır.</p>
+<div id="existingStatus" class="hidden box"></div>
+<form id="requestForm">
+<label class="choice"><input id="confirm" type="checkbox" required><span>Gather hesabımın ve ilişkili kişisel verilerimin silinmesini talep ettiğimi onaylıyorum.</span></label>
+<button id="requestButton" class="danger" type="submit">Hesap silme talebini gönder</button>
+</form>
+<button id="logoutButton" class="secondary" type="button">Çıkış yap</button>
+</section>
+<p id="message" class="error" role="status" aria-live="polite"></p>
+<footer><p class="small">Bu form yalnızca Gather kullanıcıları içindir. Şifreniz GitHub'a veya sayfa yöneticisine gönderilmez; giriş işlemi Supabase Auth tarafından yapılır. Bu sayfada gizli yönetici anahtarı bulunmaz.</p></footer>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script>
+window.addEventListener('DOMContentLoaded',()=>{
+  const url='https://ufugqzbintxkwyiuyaro.supabase.co';
+  const key='sb_publishable_zjEGxu270dryereUn862LA_hm7UMIbZ';
+  const $=id=>document.getElementById(id);
+  const msg=(s,ok=false)=>{ $('message').textContent=s; $('message').className=ok?'success':'error'; };
+  const toggle=(login)=>{ $('loginSection').classList.toggle('hidden',!login);$('requestSection').classList.toggle('hidden',login);};
+  const client=window.supabase?.createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+  if(!client){msg('Giriş servisi yüklenemedi. İnternet bağlantınızı kontrol edip sayfayı yenileyin.');return;}
+  let activeUser=null;
+  async function showSignedIn(){
+    const {data,error}=await client.auth.getUser();
+    if(error||!data?.user){activeUser=null;toggle(true);return;}
+    activeUser=data.user;toggle(false);$('userLabel').textContent='Giriş yapılan hesap: '+(activeUser.email||'Gather kullanıcısı');
+    $('requestForm').classList.remove('hidden');$('existingStatus').classList.add('hidden');
+    const {data:requests,error:loadError}=await client.from('account_deletion_requests').select('status,requested_at').eq('user_id',activeUser.id).order('requested_at',{ascending:false}).limit(1);
+    if(loadError){msg('Mevcut talepler kontrol edilemedi: '+loadError.message);return;}
+    if(requests?.length){const req=requests[0];if(req.status==='pending'||req.status==='in_review'){
+      $('existingStatus').classList.remove('hidden');$('existingStatus').textContent='Bu hesap için zaten işleme alınmayı bekleyen bir silme talebi var. Durum: '+(req.status==='pending'?'Bekliyor':'İnceleniyor');$('requestForm').classList.add('hidden');
+    }}
+  }
+  $('loginForm').addEventListener('submit',async(e)=>{
+    e.preventDefault();msg('');const b=$('loginButton');b.disabled=true;
+    try{const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)throw error;$('password').value='';await showSignedIn();}
+    catch(err){msg('Giriş yapılamadı. E-posta ve şifrenizi kontrol edin. '+(err.message||''));}
+    finally{b.disabled=false;}
+  });
+  $('requestForm').addEventListener('submit',async(e)=>{
+    e.preventDefault();if(!$('confirm').checked||!activeUser)return;
+    const b=$('requestButton');b.disabled=true;msg('');
+    try{
+      const {data,error:authError}=await client.auth.getUser();if(authError||!data?.user||data.user.id!==activeUser.id)throw Error('Oturumunuz doğrulanamadı. Yeniden giriş yapın.');
+      const {error}=await client.from('account_deletion_requests').insert({user_id:data.user.id});if(error)throw error;
+      $('requestForm').classList.add('hidden');$('existingStatus').classList.remove('hidden');$('existingStatus').textContent='Silme talebiniz başarıyla kaydedildi ve incelenmeyi bekliyor.';msg('Talebiniz alındı.',true);
+    }catch(err){msg('Talep kaydedilemedi: '+(err.message||'Bilinmeyen hata'));}
+    finally{b.disabled=false;}
+  });
+  $('logoutButton').addEventListener('click',async()=>{await client.auth.signOut();activeUser=null;$('password').value='';$('confirm').checked=false;msg('');toggle(true);});
+});
+</script>
+</body>
+</html>
